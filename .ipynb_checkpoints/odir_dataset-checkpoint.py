@@ -22,8 +22,6 @@ class ODIRDataset(Dataset):
     
     def load_image(self, index: int) -> Image.Image:
         image_path = self.paths[index]
-        if os.path.isdir(image_path):
-            raise ValueError("Directory found where an image expected: {}".format(image_path))
         return Image.open(image_path)
     
     def __len__(self) -> int:
