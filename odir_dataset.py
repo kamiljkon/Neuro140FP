@@ -4,21 +4,27 @@ from torchvision import datasets, transforms
 from PIL import Image
 import os
 
+def find_classes(directory):
+    classes = sorted(set(entry.name.split('_')[0] for entry in os.scandir(directory) if entry.name.endswith('.jpg')))
+    if not classes:
+        raise FileNotFoundError(f"Couldn't find any classes in {directory}")
+    class_to_idx = {class_name: i for i, class_name in enumerate(classes)}
+
+    return classes, class_to_idx
+
 try: 
-    dir = os.listdir('/Users/kamilkon/Desktop/Neuro140FP/ODIR/images')
-    os.chdir('/Users/kamilkon/Desktop/Neuro140FP/ODIR/images')
+    os.chdir('/Users/kamilkon/Desktop/Neuro140FP')
 except FileNotFoundError:
-    dir = os.listdir('/home/u_481835/Neuro140FP/ODIR/images')
-    os.chdir('/home/u_481835/Neuro140FP/ODIR/images')
+    os.chdir('/home/u_481835/Neuro140FP')
 
 class ODIRDataset(Dataset):
     def __init__(self,
                  targ_dir: str,
                  transform=None):
-        self.paths = list(os.listdir())
+        self.debug = print("Target directory:", os.path.abspath(targ_dir))
+        self.paths = [os.path.join(targ_dir, f) for f in os.listdir(targ_dir) if f.endswith('.jpg')]  # Store full paths
         self.transforms = transform
-        self.classes = ['Male', 'Female']
-        self.class_to_idx = {'Male': 0, 'Female': 1}
+        self.classes, self.class_to_idx = find_classes(targ_dir)
     
     def load_image(self, index: int) -> Image.Image:
         image_path = self.paths[index]
@@ -31,7 +37,7 @@ class ODIRDataset(Dataset):
     
     def __getitem__(self, index):
         img = self.load_image(index)
-        class_name = self.paths[index].split('_')[0]
+        class_name = os.path.basename(self.paths[index]).split('_')[0]
         class_idx = self.class_to_idx[class_name]
 
         if self.transforms:
@@ -39,23 +45,3 @@ class ODIRDataset(Dataset):
         else:
             return img, class_idx
         
-### TRANSFORMS
-import torch
-from torchvision.transforms import v2
-
-train_transforms = v2.Compose([
-    v2.Resize(size=(300, 300)),
-    v2.ToTensor()
-    # v2.Normalize(mean=[0.2, 0.2, 0.2], std=[0.229, 0.224, 0.225]),
-])
-
-test_transforms = v2.Compose([
-    v2.Resize(size=(300, 300)),
-    v2.ToTensor()
-])
-
-### SPLITTING THE 'IMAGES' FOLDER INTO A TRAINING SET AND A TESTING SET
-train_size = int(0.8 * len(dir))
-test_size = len(dir) - train_size
-train_dataset, test_dataset = torch.utils.data.random_split(dir, [train_size, test_size])
-
